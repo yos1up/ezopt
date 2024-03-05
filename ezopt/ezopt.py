@@ -72,12 +72,12 @@ class SourceIterator:
     
     @staticmethod
     def _to_cpp_repr(x: ChoiceType) -> str:
-        if isinstance(x, (int, float)):
+        if isinstance(x, bool):
+            return "true" if x else "false"
+        elif isinstance(x, (int, float)):
             return str(x)
         elif isinstance(x, str):
             return f'"{x}"'
-        elif isinstance(x, bool):
-            return "true" if x else "false"
         else:
             raise ValueError(f"Unsupported choice type: {type(x)}")
 
@@ -116,7 +116,7 @@ class SourceIterator:
 
 
 
-if __name__ == "__main__":
+def main():  # NOTE: パッケージのエントリーポイントとして使われる
     parser = argparse.ArgumentParser(description="EZOPT: Easy Optimization")
     parser.add_argument("CMD", type=str, help="Command to run")
     parser.add_argument("--verbose", action="store_true", help="Verbose mode")
@@ -151,3 +151,7 @@ if __name__ == "__main__":
         # 実行する
         subprocess.run(mod_cmd, shell=True)
         print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] END =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
+
+
+if __name__ == "__main__":
+    main()

@@ -12,3 +12,6 @@ exclude = []
 
 [tool.hatch.build.targets.wheel]
 packages = ["ezopt/"]
+
+[project.scripts]
+ezopt = "ezopt.ezopt:main"
