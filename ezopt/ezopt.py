@@ -1,34 +1,13 @@
 import argparse
 import json
 from pathlib import Path
-import random
 import subprocess
 import itertools
 import re
 
 from pydantic import BaseModel
 
-
-def compute_product(xs: list[int]) -> int:
-    ans = 1
-    for x in xs:
-        ans *= x
-    return ans
-
-
-def get_random_hex(n: int) -> str:
-    # 16進数の乱数を生成する n 桁の
-    return "".join(random.choices("0123456789abcdef", k=n))
-
-
-def read_text_file(path: str | Path) -> str:
-    with open(path, "r") as f:
-        return f.read()
-
-
-def write_text_file(path: str | Path, content: str) -> None:
-    with open(path, "w") as f:
-        f.write(content)
+from ezopt.utils import compute_product, get_random_hex, read_text_file, write_text_file
 
 
 def extract_cpp_file(cmd: str) -> str:
@@ -43,6 +22,7 @@ def extract_cpp_file(cmd: str) -> str:
 ChoiceType = bool | float | int | str
 # NOTE: pydantic の仕様上，例えば int | float | bool | str の順番だと，float が int にキャストされてしまう
 
+
 class HyperParameter(BaseModel):
     original: str
     hash: str
@@ -56,6 +36,13 @@ class SourceIterator:
         self.product = itertools.product(*[hp.choices for hp in self.hps])
         self.length = compute_product([len(hp.choices) for hp in self.hps])
     
+    def apply_hp_values(self, values: list[ChoiceType]) -> str:
+        assert len(values) == len(self.hps)
+        source = self.source
+        for hp, value in zip(self.hps, values):
+            source = source.replace(hp.hash, self.__class__._to_cpp_repr(value))
+        return source
+    
     def __len__(self) -> int:
         return self.length
     
@@ -63,12 +50,8 @@ class SourceIterator:
         return self
     
     def __next__(self) -> tuple[tuple[ChoiceType], str]:
-        # product から一つ取り出して，source のプレースホルダを置き換える
-        choices = next(self.product)
-        source = self.source
-        for hp, choice in zip(self.hps, choices):
-            source = source.replace(hp.hash, self.__class__._to_cpp_repr(choice))
-        return choices, source
+        values = next(self.product)
+        return values, self.apply_hp_values(values)
     
     @staticmethod
     def _to_cpp_repr(x: ChoiceType) -> str:

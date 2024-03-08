@@ -5,7 +5,10 @@ build-backend = "hatchling.build"
 [project]
 name = "ezopt"
 version = "0.0.1"
-dependencies = ["pydantic"]
+dependencies = [
+    "pydantic",
+    "optuna"
+]
 
 [tool.hatch.build]
 exclude = []
