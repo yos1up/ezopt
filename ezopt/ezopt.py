@@ -30,11 +30,14 @@ class HyperParameter(BaseModel):
     choices: list[ChoiceType]
 
 
-class SourceIterator:
+class SourceParameterizer:
+    """
+    ソースを受け取り，以下をする
+    - ソース内の HP を把握する
+    - HP の具体値を受け取ると，それらをソースに埋め込んだものを返す
+    """
     def __init__(self, source: str):
         self.hps, self.source = self.__class__.collect_hyper_parameters(source)
-        self.product = itertools.product(*[hp.choices for hp in self.hps])
-        self.length = compute_product([len(hp.choices) for hp in self.hps])
     
     def apply_hp_values(self, values: list[ChoiceType]) -> str:
         assert len(values) == len(self.hps)
@@ -42,16 +45,6 @@ class SourceIterator:
         for hp, value in zip(self.hps, values):
             source = source.replace(hp.hash, self.__class__._to_cpp_repr(value))
         return source
-    
-    def __len__(self) -> int:
-        return self.length
-    
-    def __iter__(self):
-        return self
-    
-    def __next__(self) -> tuple[tuple[ChoiceType], str]:
-        values = next(self.product)
-        return values, self.apply_hp_values(values)
     
     @staticmethod
     def _to_cpp_repr(x: ChoiceType) -> str:
@@ -63,7 +56,6 @@ class SourceIterator:
             return f'"{x}"'
         else:
             raise ValueError(f"Unsupported choice type: {type(x)}")
-
 
     @staticmethod
     def collect_hyper_parameters(source: str) -> tuple[list[HyperParameter], str]:
@@ -98,6 +90,23 @@ class SourceIterator:
         return hps, source
 
 
+class SourceIterator:
+    def __init__(self, parameterizer: SourceParameterizer):
+        self.parameterizer = parameterizer
+        hps = self.parameterizer.hps
+        self.product = itertools.product(*[hp.choices for hp in hps])
+        self.length = compute_product([len(hp.choices) for hp in hps])
+    
+    def __len__(self) -> int:
+        return self.length
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self) -> tuple[tuple[ChoiceType], str]:
+        values = next(self.product)
+        return values, self.parameterizer.apply_hp_values(values)
+
 
 def main():  # NOTE: パッケージのエントリーポイントとして使われる
     parser = argparse.ArgumentParser(description="EZOPT: Easy Optimization")
@@ -112,26 +121,30 @@ def main():  # NOTE: パッケージのエントリーポイントとして使�
     # cmd の中から，対象のC++ソースファイルを認識する
     cpp_file = extract_cpp_file(CMD)
 
-    iterator = SourceIterator(read_text_file(cpp_file))
+    parameterizer = SourceParameterizer(read_text_file(cpp_file))
 
     # HP の確認
     print("HyperParameters:")
-    for hp in iterator.hps:
+    for hp in parameterizer.hps:
         print(f"    [{hp.name}] {hp.original} <-- {hp.choices}")
     if input("Continue? [y/n] ") != "y":
+        print("Cancelled")
         exit()
+
+    # グリッドサーチのためのイテレータ
+    iterator = SourceIterator(parameterizer)
 
     this_dir = Path(__file__).parent
     tmp_file_path = this_dir / ".." / "tmp" / "_tmp.cpp"
+    mod_cmd = CMD.replace(cpp_file, str(tmp_file_path))
+    if VERBOSE:
+        print(f"{mod_cmd=}")
+
     for i, (param, mod_source) in enumerate(iterator, start=1):
         print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] START =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
         # source を一時ディレクトリ内の一時ファイルに書き出す
         write_text_file(tmp_file_path, mod_source)
-        # cmd の cppfile 部分を一時ファイルのパスに差し替える
-        mod_cmd = CMD.replace(cpp_file, str(tmp_file_path))
-        if VERBOSE:
-            print(f"{mod_cmd=}")
-        # 実行する
+        # cmd の cppfile 部分を一時ファイルのパスに差し替えた mod_cmd を実行する
         subprocess.run(mod_cmd, shell=True)
         print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] END =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
 
