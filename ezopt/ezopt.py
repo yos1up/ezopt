@@ -5,6 +5,7 @@ import itertools
 import re
 
 from ezopt.models import ChoiceType
+from ezopt.source_evaluator import SourceEvaluator
 from ezopt.source_parameterizer import SourceParameterizer
 
 from ezopt.utils import compute_product, read_text_file, write_text_file
@@ -43,14 +44,13 @@ def main():  # NOTE: パッケージのエントリーポイントとして使�
     parser.add_argument("--verbose", action="store_true", help="Verbose mode")
     args = parser.parse_args()
 
-    CMD: str = args.CMD
-    VERBOSE: bool = args.verbose
-    # CMD == "g++ main.cpp; ./a.out < in.txt"
+    CMD: str = args.CMD  # CMD == "g++ main.cpp; ./a.out < in.txt"
 
-    # cmd の中から，対象のC++ソースファイルを認識する
-    cpp_file = extract_cpp_file(CMD)
+    # 編集後ソースを評価するクラス
+    evaluator = SourceEvaluator(CMD)
 
-    parameterizer = SourceParameterizer(read_text_file(cpp_file))
+    # 編集前ソースをパラメータ化するクラス
+    parameterizer = SourceParameterizer(read_text_file(evaluator.cpp_file))
 
     # HP の確認
     print("HyperParameters:")
@@ -63,18 +63,9 @@ def main():  # NOTE: パッケージのエントリーポイントとして使�
     # グリッドサーチのためのイテレータ
     iterator = SourceIterator(parameterizer)
 
-    this_dir = Path(__file__).parent
-    tmp_file_path = this_dir / ".." / "tmp" / "_tmp.cpp"
-    mod_cmd = CMD.replace(cpp_file, str(tmp_file_path))
-    if VERBOSE:
-        print(f"{mod_cmd=}")
-
     for i, (param, mod_source) in enumerate(iterator, start=1):
         print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] START =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
-        # source を一時ディレクトリ内の一時ファイルに書き出す
-        write_text_file(tmp_file_path, mod_source)
-        # cmd の cppfile 部分を一時ファイルのパスに差し替えた mod_cmd を実行する
-        subprocess.run(mod_cmd, shell=True)
+        evaluator.evaluate(mod_source)
         print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] END =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
 
 
