@@ -10,3 +10,9 @@ class HyperParameter(BaseModel):
     hash: str
     name: str
     choices: list[ChoiceType]
+
+
+class ExecutionResult(BaseModel):
+    stdout: str
+    stderr: str
+    return_code: int

@@ -2,6 +2,12 @@ import random
 from pathlib import Path
 
 
+def safe_float(x: str) -> float | None:
+    try:
+        return float(x)
+    except ValueError:
+        return None
+
 def compute_product(xs: list[int]) -> int:
     ans = 1
     for x in xs:
