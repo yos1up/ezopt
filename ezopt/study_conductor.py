@@ -10,7 +10,7 @@ from ezopt.utils import compute_product
 
 
 class StudyResult(BaseModel):
-    trial_results: list[tuple[tuple[ChoiceType, ...], float]]
+    trial_results: list[tuple[tuple[ChoiceType, ...], float | None]]
     study: optuna.study.Study | None
     best_hp_values: tuple[ChoiceType, ...] | None
 
@@ -94,14 +94,17 @@ class GridSearchStudyConductor:
         trial_results: list[tuple[tuple[ChoiceType, ...], float]]  = []
         iterator = GridSearchSourceIterator(self.parameterizer)
         for i, (param, mod_source) in enumerate(iterator, start=1):
-            print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] START  =:=:=:=:=:=:=:=:=")
+            # print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] START  =:=:=:=:=:=:=:=:=")
+            print(f"[{i} / {len(iterator)}] {param=}")
             result = self.executor.execute(mod_source)
             score = self.evaluator.evaluate(result)
             trial_results.append((param, score))
-            print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] END (Score: {score})  =:=:=:=:=:=:=:=:=")
+            # print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] END (Score: {score})  =:=:=:=:=:=:=:=:=")
+            print(f"    Score: {score}")
         
+        trial_results_with_score = [(param, score) for param, score in trial_results if score is not None]
         return StudyResult(
             trial_results=trial_results,
             study=None,
-            best_hp_values=max(trial_results, key=lambda x: x[1])[0]
+            best_hp_values=max(trial_results_with_score, key=lambda x: x[1])[0] if len(trial_results_with_score) > 0 else None
         )
