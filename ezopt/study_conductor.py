@@ -13,8 +13,8 @@ from ezopt.utils import compute_product
 class StudyResult(BaseModel):
     trial_results: list[tuple[tuple[ChoiceType, ...], float | None]]
     study: optuna.study.Study | None
-    best_params: tuple[ChoiceType, ...] | None  # TODO: best_params に変えたい
-    best_value: float | None = None  # TODO: best_value に変えたい
+    best_params: tuple[ChoiceType, ...] | None
+    best_value: float | None
 
     class Config:
         arbitrary_types_allowed = True
