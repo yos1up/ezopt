@@ -16,7 +16,7 @@ class SourceParameterizer:
     def __init__(self, source: str):
         self.hps, self.source = self.__class__.collect_hyper_parameters(source)
     
-    def apply_hp_values(self, values: list[ChoiceType]) -> str:
+    def apply_params(self, values: list[ChoiceType]) -> str:
         assert len(values) == len(self.hps)
         source = self.source
         for hp, value in zip(self.hps, values):

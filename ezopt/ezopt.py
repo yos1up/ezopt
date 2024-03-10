@@ -21,12 +21,12 @@ def extract_cpp_file(cmd: str) -> str:
 def main():  # NOTE: パッケージのエントリーポイントとして使われる
     parser = argparse.ArgumentParser(description="EZOPT: Easy Optimization")
     parser.add_argument("CMD", type=str, help="Command to run")
-    parser.add_argument("--score-pattern", type=str, default="Score: (.+)", help="Pattern to extract score")
+    parser.add_argument("--value-pattern", type=str, default="Score: (.+)", help="Pattern to extract value")
     parser.add_argument("--verbose", action="store_true", help="Verbose mode")
     args = parser.parse_args()
 
     CMD: str = args.CMD  # CMD == "g++ main.cpp; ./a.out < in.txt"
-    SCORE_PATTERN: str = args.score_pattern
+    VALUE_PATTERN: str = args.value_pattern
 
 
     # 編集後ソースを評価するクラス
@@ -41,7 +41,7 @@ def main():  # NOTE: パッケージのエントリーポイントとして使�
     if input("Continue? [y/n] ") != "y":
         exit()
 
-    evaluator = OutputEvaluator(SCORE_PATTERN)
+    evaluator = OutputEvaluator(VALUE_PATTERN)
     if False:
         study_conductor = GridSearchStudyConductor(parameterizer, executor, evaluator)
         study_result = study_conductor.run()

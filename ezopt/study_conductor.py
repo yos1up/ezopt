@@ -13,8 +13,8 @@ from ezopt.utils import compute_product
 class StudyResult(BaseModel):
     trial_results: list[tuple[tuple[ChoiceType, ...], float | None]]
     study: optuna.study.Study | None
-    best_hp_values: tuple[ChoiceType, ...] | None  # TODO: best_params に変えたい
-    best_score: float | None = None  # TODO: best_value に変えたい
+    best_params: tuple[ChoiceType, ...] | None  # TODO: best_params に変えたい
+    best_value: float | None = None  # TODO: best_value に変えたい
 
     class Config:
         arbitrary_types_allowed = True
@@ -44,8 +44,8 @@ class BayesianOptimizationStudyConductor:
         return StudyResult(
             trial_results=[(self._decode_params(t.params), t.value) for t in study.trials],
             study=study,
-            best_hp_values=self._decode_params(study.best_params) if study.best_params is not None else None,
-            best_score=study.best_value
+            best_params=self._decode_params(study.best_params) if study.best_params is not None else None,
+            best_value=study.best_value
         )
 
     def _decode_params(self, params: dict[str, Any]) -> tuple[ChoiceType, ...]:
@@ -58,15 +58,15 @@ class BayesianOptimizationStudyConductor:
         executor: SourceExecutor,
         evaluator: OutputEvaluator        
     ) -> float:
-        hp_values = [parameterizer.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(parameterizer.hps[i].choices) - 1)] for i in range(len(parameterizer.hps))]
-        mod_source = parameterizer.apply_hp_values(hp_values)
-        print(f"[suggestion] {hp_values=}")
+        params = [parameterizer.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(parameterizer.hps[i].choices) - 1)] for i in range(len(parameterizer.hps))]
+        mod_source = parameterizer.apply_params(params)
+        print(f"[suggestion] {params=}")
         result = executor.execute(mod_source)
-        score = evaluator.evaluate(result)
-        print(f"    Score: {score}")
-        if score is None:
-            raise RuntimeError(f"Score extraction failed. \n----\n{evaluator=}\n----\n{result=}")
-        return score
+        value = evaluator.evaluate(result)
+        print(f"    {value=}")
+        if value is None:
+            raise RuntimeError(f"Value extraction failed. \n----\n{evaluator=}\n----\n{result=}")
+        return value
 
 
 class GridSearchSourceIterator:
@@ -84,7 +84,7 @@ class GridSearchSourceIterator:
     
     def __next__(self) -> tuple[tuple[ChoiceType, ...], str]:
         values = next(self.product)
-        return values, self.parameterizer.apply_hp_values(values)
+        return values, self.parameterizer.apply_params(values)
 
 
 class GridSearchStudyConductor:
@@ -102,19 +102,17 @@ class GridSearchStudyConductor:
         trial_results: list[tuple[tuple[ChoiceType, ...], float]]  = []
         iterator = GridSearchSourceIterator(self.parameterizer)
         for i, (param, mod_source) in enumerate(iterator, start=1):
-            # print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] START  =:=:=:=:=:=:=:=:=")
             print(f"[{i} / {len(iterator)}] {param=}")
             result = self.executor.execute(mod_source)
-            score = self.evaluator.evaluate(result)
-            trial_results.append((param, score))
-            # print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] END (Score: {score})  =:=:=:=:=:=:=:=:=")
-            print(f"    Score: {score}")
+            value = self.evaluator.evaluate(result)
+            trial_results.append((param, value))
+            print(f"    {value=}")
         
-        trial_results_with_score = [(param, score) for param, score in trial_results if score is not None]
-        best_trial = max(trial_results_with_score, key=lambda x: x[1]) if len(trial_results_with_score) > 0 else None
+        trial_results_with_value = [(param, value) for param, value in trial_results if value is not None]
+        best_trial = max(trial_results_with_value, key=lambda x: x[1]) if len(trial_results_with_value) > 0 else None
         return StudyResult(
             trial_results=trial_results,
             study=None,
-            best_hp_values=best_trial[0] if best_trial is not None else None,
-            best_score=best_trial[1] if best_trial is not None else None
+            best_params=best_trial[0] if best_trial is not None else None,
+            best_value=best_trial[1] if best_trial is not None else None
         )
