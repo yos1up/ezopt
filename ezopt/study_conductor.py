@@ -1,4 +1,5 @@
 import itertools
+from typing import Any
 import optuna
 from pydantic import BaseModel
 from ezopt.models import ChoiceType
@@ -12,7 +13,8 @@ from ezopt.utils import compute_product
 class StudyResult(BaseModel):
     trial_results: list[tuple[tuple[ChoiceType, ...], float | None]]
     study: optuna.study.Study | None
-    best_hp_values: tuple[ChoiceType, ...] | None
+    best_hp_values: tuple[ChoiceType, ...] | None  # TODO: best_params に変えたい
+    best_score: float | None = None  # TODO: best_value に変えたい
 
     class Config:
         arbitrary_types_allowed = True
@@ -40,10 +42,14 @@ class BayesianOptimizationStudyConductor:
             n_trials=n_trials
         )
         return StudyResult(
-            trial_results=[(t.params, t.value) for t in study.trials],
+            trial_results=[(self._decode_params(t.params), t.value) for t in study.trials],
             study=study,
-            best_hp_values=study.best_params
+            best_hp_values=self._decode_params(study.best_params) if study.best_params is not None else None,
+            best_score=study.best_value
         )
+
+    def _decode_params(self, params: dict[str, Any]) -> tuple[ChoiceType, ...]:
+        return tuple([self.parameterizer.hps[i].choices[params[f"hp_{i}"]] for i in range(len(self.parameterizer.hps))])
     
     @staticmethod
     def objective(
@@ -52,10 +58,12 @@ class BayesianOptimizationStudyConductor:
         executor: SourceExecutor,
         evaluator: OutputEvaluator        
     ) -> float:
-        values = [parameterizer.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(parameterizer.hps[i].choices) - 1)] for i in range(len(parameterizer.hps))]
-        mod_source = parameterizer.apply_hp_values(values)
+        hp_values = [parameterizer.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(parameterizer.hps[i].choices) - 1)] for i in range(len(parameterizer.hps))]
+        mod_source = parameterizer.apply_hp_values(hp_values)
+        print(f"[suggestion] {hp_values=}")
         result = executor.execute(mod_source)
         score = evaluator.evaluate(result)
+        print(f"    Score: {score}")
         if score is None:
             raise RuntimeError(f"Score extraction failed. \n----\n{evaluator=}\n----\n{result=}")
         return score
@@ -103,8 +111,10 @@ class GridSearchStudyConductor:
             print(f"    Score: {score}")
         
         trial_results_with_score = [(param, score) for param, score in trial_results if score is not None]
+        best_trial = max(trial_results_with_score, key=lambda x: x[1]) if len(trial_results_with_score) > 0 else None
         return StudyResult(
             trial_results=trial_results,
             study=None,
-            best_hp_values=max(trial_results_with_score, key=lambda x: x[1])[0] if len(trial_results_with_score) > 0 else None
+            best_hp_values=best_trial[0] if best_trial is not None else None,
+            best_score=best_trial[1] if best_trial is not None else None
         )

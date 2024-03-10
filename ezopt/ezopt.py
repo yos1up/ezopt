@@ -4,7 +4,7 @@ import re
 from ezopt.output_evaluator import OutputEvaluator, TrivialOutputEvaluator
 from ezopt.source_executor import SourceExecutor
 from ezopt.source_parameterizer import SourceParameterizer
-from ezopt.study_conductor import GridSearchStudyConductor
+from ezopt.study_conductor import BayesianOptimizationStudyConductor, GridSearchStudyConductor
 
 from ezopt.utils import read_text_file
 
@@ -42,9 +42,14 @@ def main():  # NOTE: パッケージのエントリーポイントとして使�
         exit()
 
     evaluator = OutputEvaluator(SCORE_PATTERN)
-    study_conductor = GridSearchStudyConductor(parameterizer, executor, evaluator)
-    study_result = study_conductor.run()
-    print(f"{study_result=}")
+    if False:
+        study_conductor = GridSearchStudyConductor(parameterizer, executor, evaluator)
+        study_result = study_conductor.run()
+        print(f"{study_result=}")
+    else:
+        study_conductor = BayesianOptimizationStudyConductor(parameterizer, executor, evaluator)
+        study_result = study_conductor.run(n_trials=12, direction="maximize")
+        print(f"{study_result=}")
 
 
 if __name__ == "__main__":
