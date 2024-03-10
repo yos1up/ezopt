@@ -1,5 +1,6 @@
 import itertools
 import optuna
+from pydantic import BaseModel
 from ezopt.models import ChoiceType
 from ezopt.output_evaluator import OutputEvaluator
 
@@ -7,6 +8,14 @@ from ezopt.source_executor import SourceExecutor
 from ezopt.source_parameterizer import SourceParameterizer
 from ezopt.utils import compute_product
 
+
+class StudyResult(BaseModel):
+    trial_results: list[tuple[tuple[ChoiceType, ...], float]]
+    study: optuna.study.Study | None
+    best_hp_values: tuple[ChoiceType, ...] | None
+
+    class Config:
+        arbitrary_types_allowed = True
 
 class BayesianOptimizationStudyConductor:
     def __init__(
@@ -19,7 +28,7 @@ class BayesianOptimizationStudyConductor:
         self.executor = executor
         self.evaluator = evaluator
     
-    def run(self, n_trials: int, direction: str) -> optuna.study.Study:
+    def run(self, n_trials: int, direction: str) -> StudyResult:
         study = optuna.create_study(direction=direction)
         study.optimize(
             lambda trial: self.__class__.objective(
@@ -30,7 +39,11 @@ class BayesianOptimizationStudyConductor:
             ),
             n_trials=n_trials
         )
-        return study
+        return StudyResult(
+            trial_results=[(t.params, t.value) for t in study.trials],
+            study=study,
+            best_hp_values=study.best_params
+        )
     
     @staticmethod
     def objective(
@@ -47,6 +60,7 @@ class BayesianOptimizationStudyConductor:
             raise RuntimeError(f"Score extraction failed. \n----\n{evaluator=}\n----\n{result=}")
         return score
 
+
 class GridSearchSourceIterator:
     def __init__(self, parameterizer: SourceParameterizer):
         self.parameterizer = parameterizer
@@ -60,7 +74,7 @@ class GridSearchSourceIterator:
     def __iter__(self):
         return self
     
-    def __next__(self) -> tuple[tuple[ChoiceType], str]:
+    def __next__(self) -> tuple[tuple[ChoiceType, ...], str]:
         values = next(self.product)
         return values, self.parameterizer.apply_hp_values(values)
 
@@ -76,9 +90,18 @@ class GridSearchStudyConductor:
         self.executor = executor
         self.evaluator = evaluator
     
-    def run(self) -> None:
+    def run(self) -> StudyResult:
+        trial_results: list[tuple[tuple[ChoiceType, ...], float]]  = []
         iterator = GridSearchSourceIterator(self.parameterizer)
         for i, (param, mod_source) in enumerate(iterator, start=1):
-            print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] START =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
-            self.executor.execute(mod_source)
-            print(f"=:=:=:=:=:=:=:=:=:=:=:=:=:=:= {param=} [{i} / {len(iterator)}] END =:=:=:=:=:=:=:=:=:=:=:=:=:=:=")
+            print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] START  =:=:=:=:=:=:=:=:=")
+            result = self.executor.execute(mod_source)
+            score = self.evaluator.evaluate(result)
+            trial_results.append((param, score))
+            print(f"=:=:=:=:=:=:=:=:=  {param=} [{i} / {len(iterator)}] END (Score: {score})  =:=:=:=:=:=:=:=:=")
+        
+        return StudyResult(
+            trial_results=trial_results,
+            study=None,
+            best_hp_values=max(trial_results, key=lambda x: x[1])[0]
+        )
