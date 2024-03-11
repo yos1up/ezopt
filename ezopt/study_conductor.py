@@ -54,15 +54,18 @@ class BayesianOptimizationStudyConductor:
         self,
         trial: optuna.Trial,
     ) -> float:
-        params = tuple(self.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(self.hps[i].choices) - 1)] for i in range(len(self.hps)))
-        mod_source = self.parameterizer.apply_params(params)
+        params = self._suggest_params(trial)
         print(f"[suggestion] {params=}")
+        mod_source = self.parameterizer.apply_params(params)
         result = self.executor.execute(mod_source)
         value = self.evaluator.evaluate(result)
         print(f"    {value=}")
         if value is None:
             raise RuntimeError(f"Value extraction failed. \n----\n{self.evaluator=}\n----\n{result=}")
         return value
+    
+    def _suggest_params(self, trial: optuna.Trial) -> tuple[ChoiceType, ...]:
+        return tuple(self.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(self.hps[i].choices) - 1)] for i in range(len(self.hps)))
 
 
 class GridSearchSourceIterator:

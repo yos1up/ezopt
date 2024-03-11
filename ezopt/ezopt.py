@@ -42,6 +42,10 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
 
     # 編集前ソースをパラメータ化するクラス
     parameterizer = SourceParameterizer(read_text_file(executor.cpp_file))
+
+    if len(parameterizer.hps) == 0:
+        raise ValueError("No hyperparameters are found")
+
     # HP の確認
     print("HyperParameters:")
     for hp in parameterizer.hps:
