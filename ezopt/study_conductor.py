@@ -1,4 +1,5 @@
 import itertools
+import sys
 from typing import Any
 import optuna
 from pydantic import BaseModel
@@ -35,12 +36,17 @@ class BayesianOptimizationStudyConductor:
     
     def run(self, n_trials: int, direction: str) -> StudyResult:
         study = optuna.create_study(direction=direction)
-        study.optimize(
-            lambda trial: self._objective(
-                trial,
-            ),
-            n_trials=n_trials
-        )
+
+        try:
+            study.optimize(
+                lambda trial: self._objective(
+                    trial,
+                ),
+                n_trials=n_trials
+            )
+        except KeyboardInterrupt:
+            pass
+
         return StudyResult(
             trial_results=[(self._decode_params(t.params), t.value) for t in study.trials],
             study=study,

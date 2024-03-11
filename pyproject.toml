@@ -7,7 +7,8 @@ name = "ezopt"
 version = "0.0.1"
 dependencies = [
     "pydantic",
-    "optuna"
+    "optuna",
+    "plotly"
 ]
 
 [tool.hatch.build]
