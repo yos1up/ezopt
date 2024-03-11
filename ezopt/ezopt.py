@@ -22,11 +22,11 @@ def extract_cpp_file(cmd: str) -> str:
 def main() -> None:  # NOTE: パッケージのエントリーポイントとして使われる
     parser = argparse.ArgumentParser(description="EZOPT: Easy Optimization")
     parser.add_argument("CMD", type=str, help="Command to run")
-    parser.add_argument("--value-pattern", type=str, default="Score: (.+)", help="Pattern to extract value")
-    parser.add_argument("--maximize", action="store_true", help="Maximize the value")
-    parser.add_argument("--minimize", action="store_true", help="Minimize the value")
-    parser.add_argument("--trials", type=int, default=100, help="Number of trials")
-    parser.add_argument("--output-dir", type=str, default=".", help="Output directory")
+    parser.add_argument("-p", "--value-pattern", type=str, default="Score: (.+)", help="Pattern to extract value")
+    parser.add_argument("-M", "--maximize", action="store_true", help="Maximize the value")
+    parser.add_argument("-m", "--minimize", action="store_true", help="Minimize the value")
+    parser.add_argument("-n", "--trials", type=int, default=100, help="Number of trials")
+    parser.add_argument("-o", "--output-dir", type=str, default=".", help="Output directory")
     parser.add_argument("--verbose", action="store_true", help="Verbose mode")
     args = parser.parse_args()
 
@@ -53,6 +53,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     print("HyperParameters:")
     for hp in parameterizer.hps:
         print(f"    - {hp}")
+    print("Direction:", DIRECTION)
     print("Output Directory:", OUTPUT_DIR)
     if input("Continue? [y/n] ") != "y":
         exit()
