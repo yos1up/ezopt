@@ -3,7 +3,7 @@
 
 import json
 import re
-from ezopt.models import ChoiceType, HyperParameter, HyperParameterWithChoices
+from ezopt.models import ChoiceType, HyperParameter, HyperParameterWithChoices, HyperParameterWithRange
 from ezopt.utils import get_random_hex
 
 
@@ -34,12 +34,12 @@ class SourceParameterizer:
         else:
             raise ValueError(f"Unsupported choice type: {type(x)}")
 
-    @staticmethod
-    def collect_hyper_parameters(source: str) -> tuple[list[HyperParameter], str]:
+    @classmethod
+    def collect_hyper_parameters(cls, source: str) -> tuple[list[HyperParameter], str]:
         # 全てのプレースホルダをランダムなハッシュに置き換える
         hash_to_original: dict[str, str] = {}
         
-        hp_pattern = r"\(([^)]+)\)/\*(HP.*):(.+)\*/"
+        hp_pattern = r"\(([^)]+)\)/\*\s*(HP.*):\s*(.+)\s*\*/"
 
         def _fn_replacer(m):
             hash = get_random_hex(24)
@@ -53,15 +53,44 @@ class SourceParameterizer:
         )
 
         # HyperParameer のリストを取得する
-        matches = re.findall(hp_pattern, source)
+        annotation_matches = re.findall(hp_pattern, source)
         hps: list[HyperParameter] = []
-        for m in matches:
-            choices = json.loads(m[2], strict=False)
-            assert isinstance(choices, list)
-            hps.append(HyperParameterWithChoices(
-                original=hash_to_original[m[0]],
-                hash=m[0],
-                name=m[1],
-                choices=choices
-            ))
+        for hash, name, search_space_spec in annotation_matches:
+            # search_space_spec をパースし，その結果ごとに異なる種類の HP を生成する
+            if (choices := cls.try_to_parse_search_space_spec_as_choices(search_space_spec)) is not None:
+                hps.append(HyperParameterWithChoices(
+                    original=hash_to_original[hash],
+                    hash=hash,
+                    name=name,
+                    choices=choices           
+                ))
+            elif (spec := cls.try_to_parse_search_space_spec_as_range(search_space_spec)) is not None:
+                low, high, log = spec
+                hps.append(HyperParameterWithRange(
+                    original=hash_to_original[hash],
+                    hash=hash,
+                    name=name,
+                    low=low,
+                    high=high,
+                    log=log
+                ))
+            else:
+                raise ValueError(f"Invalid search space spec: {search_space_spec=}")
         return hps, source
+    
+    @staticmethod
+    def try_to_parse_search_space_spec_as_choices(search_space_spec: str) -> list[ChoiceType] | None:
+        try:
+            return json.loads(search_space_spec, strict=False)
+        except json.JSONDecodeError:
+            return None
+    
+    @staticmethod
+    def try_to_parse_search_space_spec_as_range(search_space_spec: str) -> tuple[float, float, bool] | None:
+        m = re.match(r"(\d+(?:\.\d+)?)\s* -- \s*(\d+(?:\.\d+)?)", search_space_spec)
+        if m:
+            return float(m.group(1)), float(m.group(2)), False
+        m_log = re.match(r"(\d+(?:\.\d+)?)\s* --- \s*(\d+(?:\.\d+)?)", search_space_spec)
+        if m_log:
+            return float(m_log.group(1)), float(m_log.group(2)), True
+        return None

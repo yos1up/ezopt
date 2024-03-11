@@ -9,22 +9,22 @@ class OutputEvaluator:
     """
     実行結果 (ExecutionResult) を受け取り，その出力を評価してスコアを返すクラス
     """
-    def __init__(self, score_pattern: str):
-        self.score_pattern = score_pattern
+    def __init__(self, value_pattern: str):
+        self.value_pattern = value_pattern
 
     def evaluate(self, execution_result: ExecutionResult) -> float | None:
-        score = self.extract_score(execution_result.stdout)
-        if score is None:
-            score = self.extract_score(execution_result.stderr)
+        value = self.extract_value(execution_result.stdout)
+        if value is None:
+            value = self.extract_value(execution_result.stderr)
         
-        return score
+        return value
     
-    def extract_score(self, output: str) -> float | None:
-        score = safe_float(res.group(1)) if (res := re.search(self.score_pattern, output)) is not None else None
-        return score
+    def extract_value(self, output: str) -> float | None:
+        value = safe_float(res.group(1)) if (res := re.search(self.value_pattern, output)) is not None else None
+        return value
     
     def __repr__(self):
-        return f"OutputEvaluator(score_pattern={self.score_pattern})"
+        return f"OutputEvaluator(value_pattern={self.value_pattern})"
 
 
 class TrivialOutputEvaluator:
