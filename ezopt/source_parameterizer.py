@@ -3,7 +3,7 @@
 
 import json
 import re
-from ezopt.models import ChoiceType, HyperParameter
+from ezopt.models import ChoiceType, HyperParameter, HyperParameterWithChoices
 from ezopt.utils import get_random_hex
 
 
@@ -16,7 +16,7 @@ class SourceParameterizer:
     def __init__(self, source: str):
         self.hps, self.source = self.__class__.collect_hyper_parameters(source)
     
-    def apply_params(self, values: list[ChoiceType]) -> str:
+    def apply_params(self, values: tuple[ChoiceType, ...]) -> str:
         assert len(values) == len(self.hps)
         source = self.source
         for hp, value in zip(self.hps, values):
@@ -58,7 +58,7 @@ class SourceParameterizer:
         for m in matches:
             choices = json.loads(m[2], strict=False)
             assert isinstance(choices, list)
-            hps.append(HyperParameter(
+            hps.append(HyperParameterWithChoices(
                 original=hash_to_original[m[0]],
                 hash=m[0],
                 name=m[1],

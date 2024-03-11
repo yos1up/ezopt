@@ -2,7 +2,7 @@ import itertools
 from typing import Any
 import optuna
 from pydantic import BaseModel
-from ezopt.models import ChoiceType
+from ezopt.models import ChoiceType, HyperParameterWithChoices
 from ezopt.output_evaluator import OutputEvaluator
 
 from ezopt.source_executor import SourceExecutor
@@ -27,17 +27,16 @@ class BayesianOptimizationStudyConductor:
         evaluator: OutputEvaluator
     ):
         self.parameterizer = parameterizer
+        self.hps = [hp for hp in self.parameterizer.hps if isinstance(hp, HyperParameterWithChoices)]
+        assert len(self.hps) == len(self.parameterizer.hps), "BayesianOptimization is only supported for HyperParameterWithChoices"
         self.executor = executor
         self.evaluator = evaluator
     
     def run(self, n_trials: int, direction: str) -> StudyResult:
         study = optuna.create_study(direction=direction)
         study.optimize(
-            lambda trial: self.__class__.objective(
+            lambda trial: self._objective(
                 trial,
-                self.parameterizer,
-                self.executor,
-                self.evaluator
             ),
             n_trials=n_trials
         )
@@ -49,31 +48,29 @@ class BayesianOptimizationStudyConductor:
         )
 
     def _decode_params(self, params: dict[str, Any]) -> tuple[ChoiceType, ...]:
-        return tuple([self.parameterizer.hps[i].choices[params[f"hp_{i}"]] for i in range(len(self.parameterizer.hps))])
+        return tuple([self.hps[i].choices[params[f"hp_{i}"]] for i in range(len(self.hps))])
     
-    @staticmethod
-    def objective(
+    def _objective(
+        self,
         trial: optuna.Trial,
-        parameterizer: SourceParameterizer,
-        executor: SourceExecutor,
-        evaluator: OutputEvaluator        
     ) -> float:
-        params = [parameterizer.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(parameterizer.hps[i].choices) - 1)] for i in range(len(parameterizer.hps))]
-        mod_source = parameterizer.apply_params(params)
+        params = tuple(self.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(self.hps[i].choices) - 1)] for i in range(len(self.hps)))
+        mod_source = self.parameterizer.apply_params(params)
         print(f"[suggestion] {params=}")
-        result = executor.execute(mod_source)
-        value = evaluator.evaluate(result)
+        result = self.executor.execute(mod_source)
+        value = self.evaluator.evaluate(result)
         print(f"    {value=}")
         if value is None:
-            raise RuntimeError(f"Value extraction failed. \n----\n{evaluator=}\n----\n{result=}")
+            raise RuntimeError(f"Value extraction failed. \n----\n{self.evaluator=}\n----\n{result=}")
         return value
 
 
 class GridSearchSourceIterator:
     def __init__(self, parameterizer: SourceParameterizer):
         self.parameterizer = parameterizer
-        hps = self.parameterizer.hps
-        self.product = itertools.product(*[hp.choices for hp in hps])
+        hps = [hp for hp in self.parameterizer.hps if isinstance(hp, HyperParameterWithChoices)]
+        assert len(hps) == len(self.parameterizer.hps), "GridSearch is only supported for HyperParameterWithChoices"
+        self.product: itertools.product[tuple[ChoiceType, ...]] = itertools.product(*[hp.choices for hp in hps])
         self.length = compute_product([len(hp.choices) for hp in hps])
     
     def __len__(self) -> int:
@@ -99,7 +96,7 @@ class GridSearchStudyConductor:
         self.evaluator = evaluator
     
     def run(self) -> StudyResult:
-        trial_results: list[tuple[tuple[ChoiceType, ...], float]]  = []
+        trial_results: list[tuple[tuple[ChoiceType, ...], float | None]]  = []
         iterator = GridSearchSourceIterator(self.parameterizer)
         for i, (param, mod_source) in enumerate(iterator, start=1):
             print(f"[{i} / {len(iterator)}] {param=}")
