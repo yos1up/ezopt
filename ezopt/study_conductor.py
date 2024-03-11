@@ -2,7 +2,7 @@ import itertools
 from typing import Any
 import optuna
 from pydantic import BaseModel
-from ezopt.models import ChoiceType, HyperParameterWithChoices
+from ezopt.models import ChoiceType, HyperParameterWithChoices, HyperParameterWithRange
 from ezopt.output_evaluator import OutputEvaluator
 
 from ezopt.source_executor import SourceExecutor
@@ -27,8 +27,9 @@ class BayesianOptimizationStudyConductor:
         evaluator: OutputEvaluator
     ):
         self.parameterizer = parameterizer
-        self.hps = [hp for hp in self.parameterizer.hps if isinstance(hp, HyperParameterWithChoices)]
-        assert len(self.hps) == len(self.parameterizer.hps), "BayesianOptimization is only supported for HyperParameterWithChoices"
+        # self.hps = [hp for hp in self.parameterizer.hps if isinstance(hp, HyperParameterWithChoices)]
+        # assert len(self.hps) == len(self.parameterizer.hps), "BayesianOptimization is only supported for HyperParameterWithChoices"
+        self.hps = self.parameterizer.hps
         self.executor = executor
         self.evaluator = evaluator
     
@@ -48,24 +49,54 @@ class BayesianOptimizationStudyConductor:
         )
 
     def _decode_params(self, params: dict[str, Any]) -> tuple[ChoiceType, ...]:
-        return tuple([self.hps[i].choices[params[f"hp_{i}"]] for i in range(len(self.hps))])
+        """
+        optuna params を実際のハイパーパラメータ値に変換する
+        """
+        raw_params: list[ChoiceType] = []
+        for i in range(len(self.hps)):
+            hp = self.hps[i]
+            if isinstance(hp, HyperParameterWithChoices):
+                # raw_params.append(hp.choices[params[f"hp_{i}"]])
+                raw_params.append(params[f"hp_{i}"])
+            elif isinstance(hp, HyperParameterWithRange):
+                raw_params.append(params[f"hp_{i}"])
+            else:
+                raise RuntimeError(f"Unsupported hyperparameter type: {hp}")
+
+        return tuple(raw_params)
     
     def _objective(
         self,
         trial: optuna.Trial,
     ) -> float:
         params = self._suggest_params(trial)
-        print(f"[suggestion] {params=}")
+        # print(f"[suggestion] {params=}")
         mod_source = self.parameterizer.apply_params(params)
         result = self.executor.execute(mod_source)
         value = self.evaluator.evaluate(result)
-        print(f"    {value=}")
+        # print(f"    {value=}")
         if value is None:
             raise RuntimeError(f"Value extraction failed. \n----\n{self.evaluator=}\n----\n{result=}")
         return value
     
     def _suggest_params(self, trial: optuna.Trial) -> tuple[ChoiceType, ...]:
-        return tuple(self.hps[i].choices[trial.suggest_int(f"hp_{i}", 0, len(self.hps[i].choices) - 1)] for i in range(len(self.hps)))
+        """
+        HyperParameter たちから optuna の suggestion を行う
+        """
+        raw_params: list[ChoiceType] = []
+        for i in range(len(self.hps)):
+            hp = self.hps[i]
+            if isinstance(hp, HyperParameterWithChoices):
+                # TODO: 今よりは suggest_categorical にすべき
+                # TODO: その上で，float のみや int のみのケースは suggest_(int|float) + GridSampler で対応したほうが better と思われる
+                # raw_params.append(hp.choices[trial.suggest_int(f"hp_{i}", 0, len(hp.choices) - 1)])
+                raw_params.append(trial.suggest_categorical(f"hp_{i}", hp.choices))
+            elif isinstance(hp, HyperParameterWithRange):
+                raw_params.append(trial.suggest_float(f"hp_{i}", hp.low, hp.high, log=hp.log))
+            else:
+                raise RuntimeError(f"Unsupported hyperparameter type: {hp}")
+            
+        return tuple(raw_params)
 
 
 class GridSearchSourceIterator:
