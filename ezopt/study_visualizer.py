@@ -31,7 +31,10 @@ class StudyVisualizer:
                     for t in study.trials
                 ]
             }, f, indent=2, ensure_ascii=False)
-        optuna.visualization.plot_contour(study).write_html(output_dir / "contour.html")
-        optuna.visualization.plot_param_importances(study).write_html(output_dir / "param_importances.html") 
         optuna.visualization.plot_optimization_history(study).write_html(output_dir / "optimization_history.html")
         optuna.visualization.plot_parallel_coordinate(study).write_html(output_dir / "parallel_coordinate.html")
+        optuna.visualization.plot_param_importances(study).write_html(output_dir / "param_importances.html") 
+        optuna.visualization.plot_contour(study).write_html(output_dir / "contour.html")
+        # TODO: contour は非常に重たいので，重要度が高いと思われる 3 パラメータに絞って描画する
+
+        # TODO: study のチェックポイントファイルも保存する
