@@ -36,7 +36,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
         raise ValueError("Cannot specify both --maximize and --minimize")
     OPTIMIZE: bool = args.maximize or args.minimize
     DIRECTION: str = "maximize" if args.maximize else "minimize" if args.minimize else "none"
-    TRIALS: int = args.trials
+    N_TRIALS: int = args.trials
     OUTPUT_DIR: Path = Path(args.output_dir)
     # TODO: output_dir はデフォルト None にして，None の場合は自動でタイムスタンプ付与されたディレクトリを作成するようにする
 
@@ -62,7 +62,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     if OPTIMIZE:
         # 最適化を目的としている場合
         study_conductor = BayesianOptimizationStudyConductor(parameterizer, executor, evaluator)
-        study_result = study_conductor.run(n_trials=TRIALS, direction=DIRECTION)
+        study_result = study_conductor.run(n_trials=N_TRIALS, direction=DIRECTION)
         # print(f"{study_result=}")
         print("Summary:")
         print(f"    - Best params: {study_result.best_params}")
@@ -71,6 +71,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
             StudyVisualizer.visualize(study_result.study, OUTPUT_DIR)
             print(f"Visualized results are saved in the directory {OUTPUT_DIR}")
             # TODO: visualize は定期的に保存されるようにする
+            # TODO: best_source も保存する
     else:
         # 最適化を特に目的としていない場合（単に全ての条件で実行したい場合）
         # TODO: このケースは考えなくて良いのでは？
