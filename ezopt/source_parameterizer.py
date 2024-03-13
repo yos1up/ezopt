@@ -39,7 +39,7 @@ class SourceParameterizer:
         # 全てのプレースホルダをランダムなハッシュに置き換える
         hash_to_original: dict[str, str] = {}
         
-        hp_pattern = r"\(([^)]+)\)\s*/\*\s*(HP.*):\s*(.+)\s*\*/"
+        hp_pattern = r"\(([^)]+)\)\s*/\*\s*(HP.*)\s*:\s*(.+)\s*\*/"
 
         def _fn_replacer(m):
             hash = get_random_hex(24)
