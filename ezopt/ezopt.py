@@ -1,4 +1,5 @@
 import argparse
+import datetime
 from pathlib import Path
 import re
 
@@ -7,7 +8,7 @@ from ezopt.source_executor import SourceExecutor
 from ezopt.source_parameterizer import SourceParameterizer
 from ezopt.study_conductor import BayesianOptimizationStudyConductor, GridSearchStudyConductor
 from ezopt.study_visualizer import StudyVisualizer
-from ezopt.utils import read_text_file
+from ezopt.utils import read_text_file, write_text_file
 
 
 def extract_cpp_file(cmd: str) -> str:
@@ -26,7 +27,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     parser.add_argument("-M", "--maximize", action="store_true", help="Maximize the value")
     parser.add_argument("-m", "--minimize", action="store_true", help="Minimize the value")
     parser.add_argument("-n", "--trials", type=int, default=100, help="Number of trials")
-    parser.add_argument("-o", "--output-dir", type=str, default="./ezopt-result/", help="Output directory")
+    parser.add_argument("-o", "--output-dir", type=str, help="Output directory")
     # parser.add_argument("--verbose", action="store_true", help="Verbose mode")
     args = parser.parse_args()
 
@@ -37,8 +38,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     OPTIMIZE: bool = args.maximize or args.minimize
     DIRECTION: str = "maximize" if args.maximize else "minimize" if args.minimize else "none"
     N_TRIALS: int = args.trials
-    OUTPUT_DIR: Path = Path(args.output_dir)
-    # TODO: output_dir はデフォルト None にして，None の場合は自動でタイムスタンプ付与されたディレクトリを作成するようにする
+    OUTPUT_DIR: Path = Path(args.output_dir) if args.output_dir is not None else Path(f"./ezopt-results/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}/")
 
     # 編集後ソースを実行するクラス
     executor = SourceExecutor(CMD)
@@ -68,10 +68,13 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
         print(f"    - Best params: {study_result.best_params}")
         print(f"    - Best value: {study_result.best_value}")
         if study_result.study is not None:
+            # 可視化の保存
             StudyVisualizer.visualize(study_result.study, OUTPUT_DIR)
-            print(f"Visualized results are saved in the directory {OUTPUT_DIR}")
+            # 最適ソースの保存
+            best_source = parameterizer.apply_params(study_result.best_params)
+            write_text_file(OUTPUT_DIR / "best_source.cpp", best_source)
+            print(f"Results are saved in the directory {OUTPUT_DIR}")
             # TODO: visualize は定期的に保存されるようにする
-            # TODO: best_source も保存する
     else:
         # 最適化を特に目的としていない場合（単に全ての条件で実行したい場合）
         # TODO: このケースは考えなくて良いのでは？

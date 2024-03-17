@@ -24,6 +24,7 @@ class SourceExecutor:
         # cmd の cppfile 部分を一時ファイルのパスに差し替えた mod_cmd を実行する
         proc = subprocess.run(self.mod_cmd, shell=True, capture_output=True, text=True)
         # TODO: 出力をリアルタイムで見られるようにする機能
+        # TODO: 出力をリアルタイムで監視して pruning する機能
         return ExecutionResult(
             stdout=proc.stdout,
             stderr=proc.stderr,

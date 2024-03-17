@@ -93,8 +93,7 @@ class BayesianOptimizationStudyConductor:
         for i in range(len(self.hps)):
             hp = self.hps[i]
             if isinstance(hp, HyperParameterWithChoices):
-                # TODO: 今よりは suggest_categorical にすべき
-                # TODO: その上で，float のみや int のみのケースは suggest_(int|float) + GridSampler で対応したほうが better と思われる
+                # TODO: float のみや int のみのケースは suggest_(int|float) + GridSampler で対応したほうが better と思われる
                 # raw_params.append(hp.choices[trial.suggest_int(f"hp_{i}", 0, len(hp.choices) - 1)])
                 raw_params.append(trial.suggest_categorical(f"hp_{i}", hp.choices))
             elif isinstance(hp, HyperParameterWithRange):

@@ -87,10 +87,10 @@ class SourceParameterizer:
     
     @staticmethod
     def try_to_parse_search_space_spec_as_range(search_space_spec: str) -> tuple[float, float, bool] | None:
-        m = re.match(r"(\d+(?:\.\d+)?)\s* -- \s*(\d+(?:\.\d+)?)", search_space_spec)
+        m = re.match(r"(-?\d+(?:\.\d+)?)\s* -- \s*(-?\d+(?:\.\d+)?)", search_space_spec)
         if m:
             return float(m.group(1)), float(m.group(2)), False
-        m_log = re.match(r"(\d+(?:\.\d+)?)\s* --- \s*(\d+(?:\.\d+)?)", search_space_spec)
+        m_log = re.match(r"(-?\d+(?:\.\d+)?)\s* --- \s*(-?\d+(?:\.\d+)?)", search_space_spec)
         if m_log:
             return float(m_log.group(1)), float(m_log.group(2)), True
         return None
