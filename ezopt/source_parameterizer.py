@@ -4,7 +4,7 @@
 import json
 import re
 from ezopt.models import ChoiceType, HyperParameter, HyperParameterWithChoices, HyperParameterWithRange
-from ezopt.utils import get_random_hex
+from ezopt.utils import UniqueRenamer, get_random_hex
 
 
 class SourceParameterizer:
@@ -55,13 +55,14 @@ class SourceParameterizer:
         # HyperParameer のリストを取得する
         annotation_matches = re.findall(hp_pattern, source)
         hps: list[HyperParameter] = []
+        renamer = UniqueRenamer()
         for hash, name, search_space_spec in annotation_matches:
             # search_space_spec をパースし，その結果ごとに異なる種類の HP を生成する
             if (choices := cls.try_to_parse_search_space_spec_as_choices(search_space_spec)) is not None:
                 hps.append(HyperParameterWithChoices(
                     original=hash_to_original[hash],
                     hash=hash,
-                    name=name,
+                    name=renamer(name),
                     choices=choices           
                 ))
             elif (spec := cls.try_to_parse_search_space_spec_as_range(search_space_spec)) is not None:
@@ -69,7 +70,7 @@ class SourceParameterizer:
                 hps.append(HyperParameterWithRange(
                     original=hash_to_original[hash],
                     hash=hash,
-                    name=name,
+                    name=renamer(name),
                     low=low,
                     high=high,
                     log=log

@@ -59,13 +59,12 @@ class BayesianOptimizationStudyConductor:
         optuna params を実際のハイパーパラメータ値に変換する
         """
         raw_params: list[ChoiceType] = []
-        for i in range(len(self.hps)):
-            hp = self.hps[i]
+        for hp in self.hps:
             if isinstance(hp, HyperParameterWithChoices):
-                # raw_params.append(hp.choices[params[f"hp_{i}"]])
-                raw_params.append(params[f"hp_{i}"])
+                # raw_params.append(hp.choices[params[hp.name]])
+                raw_params.append(params[hp.name])
             elif isinstance(hp, HyperParameterWithRange):
-                raw_params.append(params[f"hp_{i}"])
+                raw_params.append(params[hp.name])
             else:
                 raise RuntimeError(f"Unsupported hyperparameter type: {hp}")
 
@@ -95,9 +94,9 @@ class BayesianOptimizationStudyConductor:
             if isinstance(hp, HyperParameterWithChoices):
                 # TODO: float のみや int のみのケースは suggest_(int|float) + GridSampler で対応したほうが better と思われる
                 # raw_params.append(hp.choices[trial.suggest_int(f"hp_{i}", 0, len(hp.choices) - 1)])
-                raw_params.append(trial.suggest_categorical(f"hp_{i}", hp.choices))
+                raw_params.append(trial.suggest_categorical(hp.name, hp.choices))
             elif isinstance(hp, HyperParameterWithRange):
-                raw_params.append(trial.suggest_float(f"hp_{i}", hp.low, hp.high, log=hp.log))
+                raw_params.append(trial.suggest_float(hp.name, hp.low, hp.high, log=hp.log))
             else:
                 raise RuntimeError(f"Unsupported hyperparameter type: {hp}")
             

@@ -28,3 +28,20 @@ def read_text_file(path: str | Path) -> str:
 def write_text_file(path: str | Path, content: str) -> None:
     with open(path, "w") as f:
         f.write(content)
+
+
+class UniqueRenamer:
+    def __init__(self):
+        self.names: set[str] = set()
+
+    def __call__(self, name: str) -> str:
+        if name not in self.names:
+            self.names.add(name)
+            return name
+        else:
+            i = 1
+            while f"{name}({i})" in self.names:
+                i += 1
+            new_name = f"{name}({i})"
+            self.names.add(new_name)
+            return new_name
