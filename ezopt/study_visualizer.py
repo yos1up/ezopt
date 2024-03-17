@@ -35,12 +35,12 @@ class StudyVisualizer:
             }, f, indent=2, ensure_ascii=False)
         optuna.visualization.plot_optimization_history(study).write_html(output_dir / "optimization_history.html")
         optuna.visualization.plot_parallel_coordinate(study).write_html(output_dir / "parallel_coordinate.html")
-        optuna.visualization.plot_param_importances(study).write_html(output_dir / "param_importances.html")
-        importances: dict[str, float] = optuna.importance.get_param_importances(study)
-        # TODO: plot と get の結果が微妙にずれる？
-        print(f"{importances=}")
-        important_params = sorted(importances, key=lambda k: -importances[k])[:3]
-        optuna.visualization.plot_contour(study, params=important_params).write_html(output_dir / "contour.html")
-        # NOTE: contour は非常に重たいので，重要度が高いと思われる 3 パラメータに絞って描画する
+        fig = optuna.visualization.plot_param_importances(study)
+        fig.write_html(output_dir / "param_importances.html")
+        params_sorted_by_importance = list(fig.data[0].y[::-1])
+        # NOTE: get_param_importances で再計算するのは重たい（また seed を合わせないと結果が再現しない）ため，
+        # visualization fig から重要パラメータを抽出するようにしている
+        optuna.visualization.plot_contour(study, params=params_sorted_by_importance[:3]).write_html(output_dir / "contour.html")
+        # NOTE: contour を全変数について出力すると html ファイルサイズが膨大となるので，重要度が高いと思われる 3 パラメータに絞って描画している
         with open(output_dir / "study.pkl", "wb") as f:
             pickle.dump(study, f)

@@ -63,7 +63,6 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
         # 最適化を目的としている場合
         study_conductor = BayesianOptimizationStudyConductor(parameterizer, executor, evaluator)
         study_result = study_conductor.run(n_trials=N_TRIALS, direction=DIRECTION)
-        # print(f"{study_result=}")
         print("Summary:")
         print(f"    - Best params: {study_result.best_params}")
         print(f"    - Best value: {study_result.best_value}")
@@ -77,7 +76,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
             # TODO: visualize は定期的に保存されるようにする
     else:
         # 最適化を特に目的としていない場合（単に全ての条件で実行したい場合）
-        # TODO: このケースは考えなくて良いのでは？
+        # TODO: このケースもほしい．何も考えず複数やってくれるやつ．
         grid_search_study_conductor = GridSearchStudyConductor(parameterizer, executor, evaluator)
         study_result = grid_search_study_conductor.run()
         print(f"{study_result=}")
