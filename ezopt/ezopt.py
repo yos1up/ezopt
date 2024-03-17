@@ -76,7 +76,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
             # TODO: visualize は定期的に保存されるようにする
     else:
         # 最適化を特に目的としていない場合（単に全ての条件で実行したい場合）
-        # TODO: このケースもほしい．何も考えず複数やってくれるやつ．
+        # NOTE: スコア形式を指定するのが面倒だが，とりあえず全通り走らせて欲しい，生出力を眺めたい，というニーズに対してはこれで対応
         grid_search_study_conductor = GridSearchStudyConductor(parameterizer, executor, evaluator)
         study_result = grid_search_study_conductor.run()
         print(f"{study_result=}")
