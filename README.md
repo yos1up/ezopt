@@ -34,21 +34,36 @@ pip install -e .
 
 ### 使用例
 ```sh
-ezopt "g++ examples/main.cpp && ./a.out" --minimize
+ezopt "g++ examples/main.cpp && ./a.out" --minimize --value-pattern "Score: (.+)"
 ```
 これにより，後述の「ハイパーパラメータ記述フォーマット」で
-`examples/main.cpp` 内に記述されたハイパーパラメータの
-組み合わせを全通り試すことができます．
-
+`examples/main.cpp` 内に記述されたハイパーパラメータたちを
+最適化することができます．
+- `--minimize` を指定しているので，目的関数の値の「最小化」を目指します．
+- `--value-pattern "Score: (.+)"` の指定により，`Score: ...` の形式で出力されている箇所が目的関数の値と認識されます．（なお，`--value-pattern "Score: (.+)"` はデフォルト設定であるため，実際にはこの指定は不要です．）
 
 ### 一般的な使用法
 
 ```sh
-ezopt "cmd"
+usage: ezopt [-h] [-p VALUE_PATTERN] [-M] [-m] [-n TRIALS] [-o OUTPUT_DIR] CMD
+
+EZOPT: Easy Optimization
+
+positional arguments:
+  CMD                   Command to run. Example: 'g++ main.cpp && ./a.out < in.txt'
+
+options:
+  -h, --help            show this help message and exit
+  -p VALUE_PATTERN, --value-pattern VALUE_PATTERN
+                        Pattern to extract value
+  -M, --maximize        Maximize the value
+  -m, --minimize        Minimize the value
+  -n TRIALS, --trials TRIALS
+                        Number of trials
+  -o OUTPUT_DIR, --output-dir OUTPUT_DIR
+                        Output directory
 ```
-ここで cmd 部分には 一度だけ `〜.cpp` という表現が含まれる必要があります．
-上記コマンドによって，「当該 cpp ファイルのハイパーパラメータ部分をさまざまに変更した場合の cmd」を
-全通り実行することができます（並列実行ではありません）．
+- CMD 部分には 一度だけ `〜.cpp` という表現が含まれる必要があります．
 
 ### ハイパーパラメータ記述フォーマット
 
