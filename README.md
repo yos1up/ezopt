@@ -1,29 +1,25 @@
 # EzOpt
 マラソン中に手軽にハイパーパラメータ探索をするためのツール
 
-Before
-```
-- 「あれ，ここの `float hoge = 0.7;` という定数，もう少し大きな値にしたほうがスコアが伸びるかもしれないぞ」
-- (`float hoge = 0.8;` に変更して上書き保存)
-- `g++ main.cpp && ./a.out < in.txt`
-- (`Score: 1134` と出力される)
-- 「おーちょっと改善してんじゃん」
-- (`float hoge = 0.9;`に変更して上書き保存)
-- `g++ main.cpp && ./a.out < in.txt`
-- (`Score: 871` と出力される)
-- 「あー今度はだいぶ下がったな．一番スコアが良くなるところはどこだろう？じゃあ 0.75 だとどうかなあ」
-- (`float hoge = 0.75;`に変更して上書き保存)
-- `g++ main.cpp && ./a.out < in.txt`
-- (`Score: 1029` と出力される)
-......
-```
+- Before
+    - 「あれ，ここの `float hoge = 0.7;` という定数，もう少し大きな値にしたほうがスコアが伸びるかもしれないぞ」
+    - （`float hoge = 0.8;` に変更して上書き保存）
+    - `g++ main.cpp && ./a.out < in.txt`
+    - （`Score: 1134` と出力される）
+    - 「おーちょっと改善してんじゃん」
+    - （`float hoge = 0.9;`に変更して上書き保存）
+    - `g++ main.cpp && ./a.out < in.txt`
+    - （`Score: 871` と出力される）
+    - 「あー今度はだいぶ下がったな．一番スコアが良くなるところはどこだろう？じゃあ 0.75 だとどうかなあ」
+    - （`float hoge = 0.75;`に変更して上書き保存）
+    - `g++ main.cpp && ./a.out < in.txt`
+    - （`Score: 1029` と出力される）
+    - ......（以下，延々と手動調整）
 
-After
-```
-- 「あれ，ここの `float hoge = 0.7;` という定数，もう少し大きな値にしたほうがスコアが伸びるかもしれないぞ」
-- (`float hoge = (0.7)/* HP: 0.7 -- 1.0 */;` に変更して上書き保存)
-- `ezopt "g++ main.cpp && ./a.out < in.txt" --maximize`
-```
+- After
+    - 「あれ，ここの `float hoge = 0.7;` という定数，もう少し大きな値にしたほうがスコアが伸びるかもしれないぞ」
+    - （`float hoge = (0.7)/* HP: 0.7 -- 1.0 */;` に変更して上書き保存）
+    - `ezopt "g++ main.cpp && ./a.out < in.txt" --maximize`
 
 ## Dependencies
 
@@ -38,7 +34,7 @@ pip install -e .
 
 ### 使用例
 ```sh
-ezopt "g++ examples/main.cpp && ./a.out"
+ezopt "g++ examples/main.cpp && ./a.out" --minimize
 ```
 これにより，後述の「ハイパーパラメータ記述フォーマット」で
 `examples/main.cpp` 内に記述されたハイパーパラメータの
