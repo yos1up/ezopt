@@ -1,8 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
 
-ChoiceType = bool | float | int | str | None
-# NOTE: pydantic の仕様上，例えば int | float | bool | str の順番だと，float が int にキャストされてしまう
+ChoiceType = StrictBool | StrictFloat | StrictInt | StrictStr | None
 
 
 class HyperParameter(BaseModel):

@@ -26,6 +26,7 @@ class OutputEvaluator:
     def __repr__(self):
         return f"OutputEvaluator(value_pattern={self.value_pattern})"
 
+# TODO: 複数のスコアを受け取って，それらの和や対数和で評価するようなEvaluatorを作る？
 
 class TrivialOutputEvaluator:
     def evaluate(self, execution_result: ExecutionResult) -> float | None:
