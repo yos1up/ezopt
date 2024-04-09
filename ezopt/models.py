@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-ChoiceType = bool | float | int | str
+ChoiceType = bool | float | int | str | None
 # NOTE: pydantic の仕様上，例えば int | float | bool | str の順番だと，float が int にキャストされてしまう
 
 

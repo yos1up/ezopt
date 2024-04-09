@@ -70,8 +70,9 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
             # 可視化の保存
             StudyVisualizer.visualize(study_result.study, OUTPUT_DIR)
             # 最適ソースの保存
-            best_source = parameterizer.apply_params(study_result.best_params)
-            write_text_file(OUTPUT_DIR / "best_source.cpp", best_source)
+            if study_result.best_params is not None:
+                best_source = parameterizer.apply_params(study_result.best_params)
+                write_text_file(OUTPUT_DIR / "best_source.cpp", best_source)
             print(f"Results are saved in the directory {OUTPUT_DIR}")
             # TODO: visualize は定期的に保存されるようにする
     else:
