@@ -81,7 +81,7 @@ class BayesianOptimizationStudyConductor:
         value = self.evaluator.evaluate(result)
         # print(f"    {value=}")
         if value is None:
-            raise RuntimeError(f"Value extraction failed. \n----\n{self.evaluator=}\n----\n{result=}")
+            raise RuntimeError(f"Value extraction failed. Check that result.stdout or result.stderr contains the value patterns.\n----\n{self.evaluator=}\n----\n{result=}")
         return value
     
     def _suggest_params(self, trial: optuna.Trial) -> tuple[ChoiceType, ...]:
