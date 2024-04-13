@@ -34,8 +34,19 @@ class BayesianOptimizationStudyConductor:
         self.executor = executor
         self.evaluator = evaluator
     
-    def run(self, n_trials: int, direction: str) -> StudyResult:
-        study = optuna.create_study(direction=direction)
+    def run(self, n_trials: int, direction: str, sampling: str = "tpe") -> StudyResult:
+        if sampling == "tpe":
+            sampler = None  # TPE will be used by default
+        elif sampling == "grid":
+            assert self.parameterizer.is_all_discrete, "Grid search is only supported for all discrete hyperparameters"
+            search_space = {
+                hp.name: hp.choices for hp in self.hps
+            }
+            sampler = optuna.samplers.GridSampler(search_space)
+        else:
+            raise ValueError(f"Unsupported sampling method: {sampling}")
+        
+        study = optuna.create_study(direction=direction, sampler=sampler)
 
         try:
             study.optimize(

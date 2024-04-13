@@ -22,6 +22,10 @@ class SourceParameterizer:
         for hp, value in zip(self.hps, values):
             source = source.replace(hp.hash, self.__class__._to_cpp_repr(value))
         return source
+
+    @property
+    def is_all_discrete(self) -> bool:
+        return all(isinstance(hp, HyperParameterWithChoices) for hp in self.hps)
     
     @staticmethod
     def _to_cpp_repr(x: ChoiceType) -> str:
