@@ -40,12 +40,13 @@ ezopt "g++ examples/main.cpp && ./a.out" --minimize --value-pattern "Score: (.+)
 `examples/main.cpp` 内に記述されたハイパーパラメータたちを
 最適化することができます．
 - `--minimize` を指定しているので，目的関数の値の「最小化」を目指します．
-- `--value-pattern "Score: (.+)"` の指定により，`Score: ...` の形式で出力されている箇所が目的関数の値と認識されます．（なお，`--value-pattern "Score: (.+)"` はデフォルト設定であるため，実際にはこの指定は不要です．）
+- `--value-pattern "Score: (.+)"` の指定により，`Score: ...` の形式で出力されている箇所が目的関数の値と認識されます．マッチ箇所が複数ある場合は，それらを「集約」（デフォルトでは「合計」）したものが目的関数の値と認識されます．
+    - なお，`--value-pattern` のデフォルト値は `"Score: (.+)"` であるため（AHC 準拠），実際にはこのオプション指定は不要です．
 
 ### 一般的な使用法
 
 ```sh
-usage: ezopt [-h] [-p VALUE_PATTERN] [-M] [-m] [-n TRIALS] [-o OUTPUT_DIR] CMD
+usage: ezopt [-h] [-p VALUE_PATTERN] [-M] [-m] [-g] [-n TRIALS] [-a {sum,sumlog}] [-o OUTPUT_DIR] CMD
 
 EZOPT: Easy Optimization
 
@@ -58,8 +59,11 @@ options:
                         Pattern to extract value
   -M, --maximize        Maximize the value
   -m, --minimize        Minimize the value
+  -g, --grid            Grid search mode
   -n TRIALS, --trials TRIALS
                         Number of trials
+  -a {sum,sumlog}, --aggregation {sum,sumlog}
+                        How to aggregate values from multiple matches
   -o OUTPUT_DIR, --output-dir OUTPUT_DIR
                         Output directory
 ```
