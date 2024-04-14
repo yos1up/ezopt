@@ -1,5 +1,4 @@
 import itertools
-import sys
 from typing import Any
 import optuna
 from pydantic import BaseModel
@@ -40,8 +39,8 @@ class BayesianOptimizationStudyConductor:
         elif sampling == "grid":
             assert self.parameterizer.is_all_discrete, "Grid search is only supported for all discrete hyperparameters"
             search_space = {
-                hp.name: hp.choices for hp in self.hps
-            }
+                hp.name: hp.choices for hp in self.hps if isinstance(hp, HyperParameterWithChoices)
+            }  # NOTE: isinstance チェックは全て通るはず（mypy のために明示的に書いている）
             sampler = optuna.samplers.GridSampler(search_space)
         else:
             raise ValueError(f"Unsupported sampling method: {sampling}")

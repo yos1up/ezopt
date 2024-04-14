@@ -26,8 +26,9 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     parser.add_argument("-p", "--value-pattern", type=str, default="Score: (.+)", help="Pattern to extract value")
     parser.add_argument("-M", "--maximize", action="store_true", help="Maximize the value")
     parser.add_argument("-m", "--minimize", action="store_true", help="Minimize the value")
-    parser.add_argument("-n", "--trials", type=int, default=100, help="Number of trials")
     parser.add_argument("-g", "--grid", action="store_true", help="Grid search mode")
+    parser.add_argument("-n", "--trials", type=int, default=100, help="Number of trials")
+    parser.add_argument("-a", "--aggregation", type=str, default="sum", choices=["sum", "sumlog"], help="How to aggregate values from multiple matches")
     parser.add_argument("-o", "--output-dir", type=str, help="Output directory")
     # parser.add_argument("--verbose", action="store_true", help="Verbose mode")
     args = parser.parse_args()
@@ -36,10 +37,14 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     VALUE_PATTERN: str = args.value_pattern
     if args.maximize and args.minimize:
         raise ValueError("Cannot specify both --maximize and --minimize")
+    if not args.maximize and not args.minimize:
+        raise ValueError("Must specify either --maximize or --minimize")
+
+    DIRECTION: str = "maximize" if args.maximize else "minimize"
     OPTIMIZE: bool = args.maximize or args.minimize
-    DIRECTION: str = "maximize" if args.maximize else "minimize" if args.minimize else "none"
     N_TRIALS: int = args.trials
     GRID: bool = args.grid
+    AGGREGAGION: str = args.aggregation
     OUTPUT_DIR: Path = Path(args.output_dir) if args.output_dir is not None else Path(f"./ezopt-results/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}/")
 
     # 編集後ソースを実行するクラス
@@ -60,7 +65,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     if input("Continue? [y/n] ") != "y":
         exit()
 
-    evaluator = OutputEvaluator(VALUE_PATTERN)
+    evaluator = OutputEvaluator(VALUE_PATTERN, value_aggregation=AGGREGAGION)
     if OPTIMIZE:
         # 最適化を目的としている場合
         study_conductor = BayesianOptimizationStudyConductor(parameterizer, executor, evaluator)
@@ -80,7 +85,7 @@ def main() -> None:  # NOTE: パッケージのエントリーポイントとし
     else:
         # 最適化を特に目的としていない場合（単に全ての条件で実行したい場合）
         # NOTE: スコア形式を指定するのが面倒だが，とりあえず全通り走らせて欲しい，生出力を眺めたい，というニーズに対してはこれで対応
-        # TODO: こちらのモードはいずれ消したい（上に統合したい）
+        # TODO: optuna で grid search すれば良いので，こちらのモードはいずれ消したい（上に統合したい）
         grid_search_study_conductor = GridSearchStudyConductor(parameterizer, executor, evaluator)
         study_result = grid_search_study_conductor.run()
         print(f"{study_result=}")
